@@ -3,8 +3,40 @@ pub mod Types {
     use std::option::Option;
 
     pub trait Card {
-        fn get_name(&self) -> &String;
+        fn activate_effect(&mut self, players: &mut Vec<&mut Player>);
+        fn check_ownership(&self, current_player: &Player, players: &mut Vec<Player>);
     }
+
+    impl Card for EventCard {
+        fn activate_effect(&mut self, players: &mut Vec<&mut Player>) {
+            (self.effect)(players);
+        }
+
+        fn check_ownership(&self, current_player: &Player, players: &mut Vec<Player>) {}
+    }
+
+    impl Card for PropertyCard {
+        fn activate_effect(&mut self, players: &mut Vec<&mut Player>) {}
+
+        fn check_ownership(&self, current_player: &Player, players: &mut Vec<Player>) {
+            if let Some(owner) = &self.owner {
+                if owner.name != current_player.name {
+                    match (self.houses_amount, self.hotel_amount) {
+                        (Some(1), _) => println!("Rent: {}", self.one_house_rent),
+                        (Some(2), _) => println!("Rent: {}", self.two_house_rent),
+                        (Some(3), _) => println!("Rent: {}", self.three_house_rent),
+                        (Some(_), Some(_)) => println!("Rent: {}", self.hotel_rent),
+                        _ => println!("Rent: {}", self.rent),
+                    }
+                } else {
+                    println!("You own this property.");
+                }
+            } else {
+                println!("Property is not owned.");
+            }
+        }
+    }
+
     pub struct EventCard {
         pub event: String,
         pub name: String,
@@ -12,16 +44,11 @@ pub mod Types {
         pub effect: Box<dyn FnMut(&mut Vec<&mut Player>)>,
     }
 
-    impl Card for EventCard {
-        fn get_name(&self) -> &String {
-            &self.name
-        }
-    }
-
     pub struct PropertyCard {
         pub name: String,
         pub price: u32,
         pub mortgage_value: u32,
+        pub rent: u32,
         pub one_house_rent: u32,
         pub two_house_rent: u32,
         pub three_house_rent: u32,
@@ -29,12 +56,6 @@ pub mod Types {
         pub owner: Option<Player>,
         pub houses_amount: Option<u32>,
         pub hotel_amount: Option<u32>,
-    }
-
-    impl Card for PropertyCard {
-        fn get_name(&self) -> &String {
-            &self.name
-        }
     }
 
     pub struct Player {

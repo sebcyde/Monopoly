@@ -7,6 +7,11 @@ fn main() {
     use crate::helper_functions::helpers::*;
     use crate::types::Types::*;
 
+    enum Cards {
+        PropertyCard(PropertyCard),
+        EventCard(EventCard),
+    }
+
     println!("Starting Main Monopoly Fn");
 
     // Initialising stuff
@@ -66,15 +71,15 @@ fn main() {
     // check(players, community_chest_cards, chance_cards);
 
     // Combine all the card vectors into the board vector
-    let mut board: Vec<Box<dyn Card>> = Vec::new();
+    let mut board: Vec<Cards> = Vec::new();
     for property_card in property_cards {
-        board.push(Box::new(property_card) as Box<dyn Card>);
+        board.push(Cards::PropertyCard(property_card));
     }
     for chance_card in chance_cards {
-        board.push(Box::new(chance_card) as Box<dyn Card>);
+        board.push(Cards::EventCard(chance_card));
     }
     for community_chest_card in community_chest_cards {
-        board.push(Box::new(community_chest_card) as Box<dyn Card>);
+        board.push(Cards::EventCard(community_chest_card));
     }
 
     // Begin Game HERE
@@ -101,12 +106,28 @@ fn main() {
             current_player.name, current_player.cash_balance
         );
 
+        // move player forward
         let dice_roll: u32 = roll_dice();
         calculate_player_position(
             &mut current_player,
             dice_roll,
             board.len().try_into().unwrap(),
         );
+
+        // pattern match new location & invoke new location effects
+        let current_location = board.get(current_player.current_position as usize);
+
+        match current_location {
+            Some(Cards::PropertyCard(property_card)) => {
+                println!("Current location: {}", property_card.name);
+                // property_card.check_ownership(&mut current_player, &mut players);
+            }
+            Some(Cards::EventCard(event_card)) => {
+                println!("Current location: {}", event_card.name);
+                println!("Current description: {}", event_card.description);
+            }
+            None => println!("Invalid card at the current location."),
+        }
 
         println!(" ");
 

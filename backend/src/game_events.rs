@@ -2,6 +2,11 @@ pub mod game_events {
     use crate::types::Types::{EventCard, Player};
     use rand::Rng;
 
+    pub enum TransactionType {
+        Add,
+        Subtract,
+    }
+
     pub fn create_players(players: &mut Vec<Player>, player_names: Vec<String>, game_type: &str) {
         if game_type == "normal" {
             for i in 0..player_names.len() {
@@ -110,6 +115,21 @@ pub mod game_events {
                 "(< BL) - Player new position: {}",
                 current_player.current_position
             );
+        }
+    }
+
+    pub fn process_transaction(
+        current_player: &mut Player,
+        amount: u32,
+        transaction_type: TransactionType,
+    ) {
+        match transaction_type {
+            TransactionType::Add => {
+                current_player.cash_balance += amount;
+            }
+            TransactionType::Subtract => {
+                current_player.cash_balance -= amount;
+            }
         }
     }
 }
