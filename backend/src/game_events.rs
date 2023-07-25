@@ -1,5 +1,5 @@
 pub mod game_events {
-    use crate::types::Types::{EventCard, Player, PropertyCard};
+    use crate::types::Types::{EventCard, Player};
     use rand::Rng;
 
     pub fn create_players(players: &mut Vec<Player>, player_names: Vec<String>, game_type: &str) {
@@ -17,7 +17,7 @@ pub mod game_events {
             cash_balance: 2000,
             owned_property: Some(Vec::new()),
             owned_event_cards: Some(Vec::new()),
-            current_position: String::from("Go"),
+            current_position: 0,
             current_player: false,
             active: true,
         };
@@ -31,7 +31,7 @@ pub mod game_events {
             name: String::from("Advance to Go"),
             description: String::from("Advance token to Go (Collect $200)"),
             effect: Box::new(|players: &mut Vec<&mut Player>| {
-                players[0].current_position = String::from("Go");
+                players[0].current_position = 0;
                 players[0].cash_balance += 200;
                 println!("Player position is now GO. Player awarded 200 cash.");
             }),
@@ -42,7 +42,7 @@ pub mod game_events {
             name: String::from("Go to jail"),
             description: String::from("Go directly to jail."),
             effect: Box::new(|players: &mut Vec<&mut Player>| {
-                players[0].current_position = String::from("Jail");
+                players[0].current_position = 31;
                 println!("Player position is now JAIL.");
             }),
         };
@@ -58,7 +58,7 @@ pub mod game_events {
             name: String::from("Go to jail"),
             description: String::from("Go directly to jail."),
             effect: Box::new(|players: &mut Vec<&mut Player>| {
-                players[0].current_position = String::from("Jail");
+                players[0].current_position = 31;
                 println!("Player position is now JAIL.");
             }),
         };
@@ -78,35 +78,38 @@ pub mod game_events {
         community_chest_cards.push(c2);
     }
 
-    pub fn create_property_cards() -> Vec<PropertyCard> {
-        let light_blue_one: PropertyCard = PropertyCard {
-            name: String::from("light_blue_one"),
-            price: 120,
-            mortgage_value: todo!(),
-            one_house_rent: todo!(),
-            two_house_rent: todo!(),
-            three_house_rent: todo!(),
-            hotel_rent: todo!(),
-            owner: todo!(),
-            houses_amount: todo!(),
-            hotel_amount: todo!(),
-        };
-    }
-
     pub fn roll_dice() -> u32 {
         let mut rng = rand::thread_rng();
         return rng.gen_range(1..=12);
     }
 
-    pub fn calculate_player_position(current_position: u32, dice_roll: u32, board_length: u32) {
-        if current_position + dice_roll > board_length {
-            let remainder: u32 = board_length % (current_position + dice_roll);
-            println!("Dice roll remainder: {}", remainder);
-            current_position = remainder;
-            println!("(IF) - Player current position: {}", current_position);
+    pub fn calculate_player_position(
+        current_player: &mut Player,
+        dice_roll: u32,
+        board_length: u32,
+    ) {
+        println!("Dice roll: {}", dice_roll);
+        // let mut current_position: &mut u32 = current_player.current_position;
+        let new_position = current_player.current_position + dice_roll;
+
+        if new_position >= board_length {
+            let remainder: u32 = new_position % board_length;
+            current_player.cash_balance += 200;
+            current_player.current_position = remainder;
+            println!(
+                "(> BL) - Player new position: {}",
+                current_player.current_position
+            );
+            println!(
+                "(> BL) - Player new balance: {}",
+                current_player.cash_balance
+            );
         } else {
-            current_position += dice_roll;
-            println!("(ELSE) - Player current position: {}", current_position);
+            current_player.current_position = new_position;
+            println!(
+                "(< BL) - Player new position: {}",
+                current_player.current_position
+            );
         }
     }
 }

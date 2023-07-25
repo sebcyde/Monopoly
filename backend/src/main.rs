@@ -25,22 +25,7 @@ fn main() {
     let mut community_chest_cards: Vec<EventCard> = Vec::new();
     let mut property_cards: Vec<PropertyCard> = Vec::new();
     let mut chance_cards: Vec<EventCard> = Vec::new();
-    let mut board: Vec<Box<dyn Card>> = Vec::new();
     let mut players: Vec<Player> = Vec::new();
-
-    // Combine all the card vectors into the board vector
-
-    for property_card in property_cards {
-        board.push(Box::new(property_card) as Box<dyn Card>);
-    }
-
-    for chance_card in chance_cards {
-        board.push(Box::new(chance_card) as Box<dyn Card>);
-    }
-
-    for community_chest_card in community_chest_cards {
-        board.push(Box::new(community_chest_card) as Box<dyn Card>);
-    }
 
     create_players(&mut players, player_names, "normal");
     create_community_chest_cards(&mut community_chest_cards);
@@ -78,22 +63,58 @@ fn main() {
         }
         println!(" ");
     }
-    check(players, community_chest_cards, chance_cards);
+    // check(players, community_chest_cards, chance_cards);
+
+    // Combine all the card vectors into the board vector
+    let mut board: Vec<Box<dyn Card>> = Vec::new();
+    for property_card in property_cards {
+        board.push(Box::new(property_card) as Box<dyn Card>);
+    }
+    for chance_card in chance_cards {
+        board.push(Box::new(chance_card) as Box<dyn Card>);
+    }
+    for community_chest_card in community_chest_cards {
+        board.push(Box::new(community_chest_card) as Box<dyn Card>);
+    }
 
     // Begin Game HERE
     println!("Starting game event loop.");
-    players[0].current_player = true;
+    println!("Board size: {}", board.len());
+    println!(" ");
+
+    let mut current_player_index = 0;
 
     let mut bankrupt_players: Vec<Player> = Vec::new();
+    let mut turn: u32 = 0;
 
     while players.len() > 1 {
-        for player in players {
-            let dice_roll: u32 = roll_dice();
-            calculate_player_position(
-                player.current_position,
-                dice_roll,
-                board.len().try_into().unwrap(),
-            );
+        let mut current_player = &mut players[current_player_index];
+
+        println!("Starting {}'s turn.", current_player.name);
+        println!("Current turn: {}", turn);
+        println!(
+            "{}'s current position: {}",
+            current_player.name, current_player.current_position
+        );
+        println!(
+            "{}'s current cash balance: {}",
+            current_player.name, current_player.cash_balance
+        );
+
+        let dice_roll: u32 = roll_dice();
+        calculate_player_position(
+            &mut current_player,
+            dice_roll,
+            board.len().try_into().unwrap(),
+        );
+
+        println!(" ");
+
+        // println!("Starting game event loop.");
+        current_player_index = (current_player_index + 1) % players.len();
+        turn += 1;
+        if turn == 10 {
+            break;
         }
     }
 
