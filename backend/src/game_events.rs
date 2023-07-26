@@ -120,6 +120,7 @@ pub mod game_events {
 
     pub fn process_transaction(
         current_player: &mut Player,
+        recieving_user: Option<&mut Player>,
         amount: u32,
         transaction_type: TransactionType,
     ) {
@@ -129,6 +130,11 @@ pub mod game_events {
             }
             TransactionType::Subtract => {
                 current_player.cash_balance -= amount;
+                // TODO - fix here
+
+                // if Some(recieving_user) {
+                // recieving_user.cash_balance += amount;
+                // }
             }
         }
     }
