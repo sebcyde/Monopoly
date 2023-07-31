@@ -1,8 +1,7 @@
-pub mod helpers {
-
+pub mod get_user_input {
     use std::io;
 
-    pub fn get_input(prompt: &str) -> String {
+    pub fn get_user_input(prompt: &str) -> String {
         println!("{}", prompt);
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {

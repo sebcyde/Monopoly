@@ -1,77 +1,84 @@
-mod game_events;
-pub mod helper_functions;
-mod types;
+pub mod classes {
+    pub mod event_card_class;
+    pub mod player_class;
+    pub mod property_class;
+    pub mod special_location_class;
+    pub mod station_class;
+    pub mod utility_class;
+}
+
+pub mod setup {
+    pub mod create_chance_cards;
+    pub mod create_community_chest_cards;
+    pub mod create_player;
+    pub mod create_property_cards;
+}
+
+pub mod game_events {
+    pub mod bankrupt_player;
+    pub mod roll_dice;
+    pub mod transfer_cash;
+    pub mod transfer_property;
+}
+
+pub mod helpers {
+    pub mod debug_functions;
+    pub mod get_user_input;
+    pub mod set_player_position;
+}
+
+use game_events::{
+    roll_dice::roll_dice::roll_dice, transfer_cash::transfer_cash::*,
+    transfer_property::transfer_property::transfer_property,
+};
+
+use helpers::{debug_functions::debug::*, get_user_input::get_user_input::get_user_input};
+
+use setup::{
+    create_chance_cards::chance_cards::create_chance_cards,
+    create_community_chest_cards::community_chest_cards::create_community_chest_cards,
+    create_player::create_player::create_players,
+};
+
+use crate::{
+    classes::{
+        event_card_class::event_card_class::EventCard, player_class::player_class::Player,
+        property_class::property_class::PropertyCard,
+        special_location_class::special_location_class::SpecialLocation,
+    },
+    game_events::bankrupt_player::bankrupt_player::bankrupt_player,
+    helpers::set_player_position::set_player_position::set_player_position,
+};
 
 fn main() {
-    use crate::game_events::game_events::*;
-    use crate::helper_functions::helpers::*;
-    use crate::types::Types::*;
-
     enum Cards {
         PropertyCard(PropertyCard),
         EventCard(EventCard),
+        SpecialLocation(SpecialLocation),
     }
 
     println!("Starting Main Monopoly Fn");
 
     // Initialising stuff
-
-    let mut player_names: Vec<String> = Vec::new();
-    loop {
-        let input: String = get_input("Please enter player name...");
-
-        if input.is_empty() {
-            break;
-        } else {
-            player_names.push(input)
-        }
-    }
-
     let mut community_chest_cards: Vec<EventCard> = Vec::new();
     let mut property_cards: Vec<PropertyCard> = Vec::new();
+    let mut bankrupt_players: Vec<&mut Player> = Vec::new();
     let mut chance_cards: Vec<EventCard> = Vec::new();
-    let mut players: Vec<Player> = Vec::new();
+    let mut player_names: Vec<String> = Vec::new();
+    let mut players: Vec<&mut Player> = Vec::new();
+    let mut current_player_index: usize = 0;
+    let mut board: Vec<Cards> = Vec::new();
+    let mut turn: u32 = 0;
 
-    create_players(&mut players, player_names, "normal");
+    create_players(&mut players, &mut player_names, "normal");
     create_community_chest_cards(&mut community_chest_cards);
     create_chance_cards(&mut chance_cards);
 
-    fn check(
-        players: Vec<Player>,
-        community_chest_cards: Vec<EventCard>,
-        chance_cards: Vec<EventCard>,
-    ) {
-        println!(" ");
-        println!("Players:");
-        println!(" ");
-        for i in 0..players.len() {
-            println!("{}", players[i].name);
-            println!("{}", players[i].cash_balance);
+    // debug
+    check_players(&players);
+    check_chance_cards(&chance_cards);
+    check_community_chest_cards(&community_chest_cards);
 
-            println!(" ")
-        }
-        println!(" ");
-        println!("Community Chests");
-        println!(" ");
-        for i in 0..community_chest_cards.len() {
-            println!("{}", community_chest_cards[i].name);
-            println!("{}", community_chest_cards[i].description);
-            println!(" ")
-        }
-        println!(" ");
-        println!("Chances");
-        println!(" ");
-        for i in 0..chance_cards.len() {
-            println!("{}", chance_cards[i].name);
-            println!("{}", chance_cards[i].description);
-            println!(" ")
-        }
-        println!(" ");
-    }
-    // check(players, community_chest_cards, chance_cards);
-
-    // Combine all the card vectors into the board vector
-    let mut board: Vec<Cards> = Vec::new();
     for property_card in property_cards {
         board.push(Cards::PropertyCard(property_card));
     }
@@ -86,29 +93,15 @@ fn main() {
     println!("Starting game event loop.");
     println!("Board size: {}", board.len());
     println!(" ");
-
-    let mut current_player_index = 0;
-
-    let mut bankrupt_players: Vec<Player> = Vec::new();
-    let mut turn: u32 = 0;
+    println!(" ");
 
     while players.len() > 1 {
         let mut current_player = &mut players[current_player_index];
-
         println!("Starting {}'s turn.", current_player.name);
-        println!("Current turn: {}", turn);
-        println!(
-            "{}'s current position: {}",
-            current_player.name, current_player.current_position
-        );
-        println!(
-            "{}'s current cash balance: {}",
-            current_player.name, current_player.cash_balance
-        );
 
         // move player forward
         let dice_roll: u32 = roll_dice();
-        calculate_player_position(
+        set_player_position(
             &mut current_player,
             dice_roll,
             board.len().try_into().unwrap(),
@@ -120,18 +113,35 @@ fn main() {
         match current_location {
             Some(Cards::PropertyCard(property_card)) => {
                 println!("Current location: {}", property_card.name);
-                // property_card.check_ownership(&mut current_player, &mut players);
+                println!(
+                    "Property owner: {}",
+                    property_card.owner.as_ref().unwrap().name
+                );
             }
             Some(Cards::EventCard(event_card)) => {
                 println!("Current location: {}", event_card.name);
-                println!("Current description: {}", event_card.description);
+                event_card.apply_effect(&mut current_player, &mut players)
             }
-            None => println!("Invalid card at the current location."),
+            Some(Cards::SpecialLocation(special_location)) => {
+                println!("Current location: {}", special_location.name);
+                special_location.apply_effect(&mut current_player);
+            }
+            None => println!(
+                "Invalid card at the location: {}",
+                current_player.current_position as usize
+            ),
         }
 
         println!(" ");
 
-        // println!("Starting game event loop.");
+        if current_player.cash_balance <= 0 {
+            bankrupt_player(&mut players, current_player_index);
+            println!("{} is bankrupt!", current_player.name)
+        }
+
+        println!(" ");
+        println!(" ");
+
         current_player_index = (current_player_index + 1) % players.len();
         turn += 1;
         if turn == 10 {
